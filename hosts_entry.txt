@@ -1,0 +1,3 @@
+
+# Agent Framework Test Domains
+127.0.0.1 mywebclass.org www.mywebclass.org traefik.mywebclass.org registry.mywebclass.org agent.mywebclass.org tools.mywebclass.org

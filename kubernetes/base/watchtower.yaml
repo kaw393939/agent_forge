@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: watchtower
+  labels:
+    app: watchtower
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: watchtower
+  template:
+    metadata:
+      labels:
+        app: watchtower
+    spec:
+      containers:
+      - name: watchtower
+        image: containrrr/watchtower
+        args:
+          - --interval
+          - "300"  # 5 minutes
+          - --cleanup
+          - --label-enable  # Only watch containers with label
+        env:
+        - name: WATCHTOWER_LABEL_ENABLE
+          value: "true"
+        volumeMounts:
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+          readOnly: true
+      volumes:
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: watchtower
+spec:
+  selector:
+    app: watchtower
+  ports:
+  - port: 8080
+    targetPort: 8080

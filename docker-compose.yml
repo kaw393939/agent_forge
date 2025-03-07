@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # Traefik - reverse proxy and load balancer
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8888:8080" # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - agent-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.mywebclass.org`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+
+  # Watchtower - automatic container updates
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup
+    networks:
+      - agent-network
+
+  # Service Registry - for agent and API tool discovery
+  service-registry:
+    build: 
+      context: ./service-registry
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./service-registry:/app
+    networks:
+      - agent-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.registry.rule=Host(`registry.mywebclass.org`)"
+      - "traefik.http.services.registry.loadbalancer.server.port=8000"
+
+  # Example agent
+  example-agent:
+    build:
+      context: ./agents/example-agent
+    depends_on:
+      - service-registry
+    volumes:
+      - ./agents/example-agent:/app
+    environment:
+      - REGISTRY_URL=http://service-registry:8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - agent-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example-agent.rule=Host(`agent.mywebclass.org`) && PathPrefix(`/example`)"
+      - "traefik.http.services.example-agent.loadbalancer.server.port=8080"
+    command: "uvicorn app:app --host 0.0.0.0 --port 8080 --reload"
+
+  # Example API tool
+  example-tool:
+    build:
+      context: ./tools/example-tool
+    depends_on:
+      - service-registry
+    volumes:
+      - ./tools/example-tool:/app
+    environment:
+      - REGISTRY_URL=http://service-registry:8000
+    networks:
+      - agent-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.example-tool.rule=Host(`tools.mywebclass.org`) && PathPrefix(`/calculator`)"
+      - "traefik.http.services.example-tool.loadbalancer.server.port=8080"
+      - "traefik.http.routers.example-tool.middlewares=calculator-stripprefix"
+      - "traefik.http.middlewares.calculator-stripprefix.stripprefix.prefixes=/calculator"
+    command: "uvicorn app:app --host 0.0.0.0 --port 8080 --reload"
+
+  # Streamlit Frontend
+  streamlit:
+    build:
+      context: ./frontend/streamlit
+    depends_on:
+      - service-registry
+      - example-agent
+      - example-tool
+    volumes:
+      - ./frontend/streamlit:/app
+    environment:
+      - REGISTRY_URL=http://service-registry:8000
+      - DEBUG=true
+    networks:
+      - agent-network
+    ports:
+      - "8502:8501"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.streamlit.rule=Host(`mywebclass.org`) || Host(`www.mywebclass.org`)"
+      - "traefik.http.services.streamlit.loadbalancer.server.port=8501"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+networks:
+  agent-network:
+    driver: bridge
