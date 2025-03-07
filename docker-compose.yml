@@ -34,8 +34,7 @@ services:
 
   # Service Registry - for agent and API tool discovery
   service-registry:
-    build: 
-      context: ./service-registry
+    image: kaw393939/agent-forge-service-registry:latest
     ports:
       - "8005:8000"
     volumes:
@@ -46,11 +45,11 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.registry.rule=Host(`registry.mywebclass.org`)"
       - "traefik.http.services.registry.loadbalancer.server.port=8000"
+      - "com.centurylinklabs.watchtower.enable=true"
 
   # Example agent
   example-agent:
-    build:
-      context: ./agents/example-agent
+    image: kaw393939/agent-forge-example-agent:latest
     depends_on:
       - service-registry
     volumes:
@@ -64,12 +63,12 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.example-agent.rule=Host(`agent.mywebclass.org`) && PathPrefix(`/example`)"
       - "traefik.http.services.example-agent.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
     command: "uvicorn app:app --host 0.0.0.0 --port 8080 --reload"
 
   # Example API tool
   example-tool:
-    build:
-      context: ./tools/example-tool
+    image: kaw393939/agent-forge-example-tool:latest
     depends_on:
       - service-registry
     volumes:
@@ -84,12 +83,12 @@ services:
       - "traefik.http.services.example-tool.loadbalancer.server.port=8080"
       - "traefik.http.routers.example-tool.middlewares=calculator-stripprefix"
       - "traefik.http.middlewares.calculator-stripprefix.stripprefix.prefixes=/calculator"
+      - "com.centurylinklabs.watchtower.enable=true"
     command: "uvicorn app:app --host 0.0.0.0 --port 8080 --reload"
 
   # Streamlit Frontend
   streamlit:
-    build:
-      context: ./frontend/streamlit
+    image: kaw393939/agent-forge-streamlit:latest
     depends_on:
       - service-registry
       - example-agent

@@ -62,7 +62,7 @@ create_droplet() {
                 # Clone repository\n
                 mkdir -p /opt/mywebclass\n
                 cd /opt/mywebclass\n
-                git clone git@github.com:kaw393939/infrastructure.git .\n
+                git clone git@github.com:kaw393939/agent_forge.git .\n
                 
                 # Create .env file with all environment variables\n
                 echo \"OPENAI_API_KEY=$OPENAI_API_KEY\" > .env\n
@@ -72,9 +72,13 @@ create_droplet() {
                 echo \"GODADDY_TLD=$GODADDY_TLD\" >> .env\n
                 echo \"GODADDY_DOMAIN=$GODADDY_DOMAIN\" >> .env\n
                 echo \"DIGITAL_OCEAN_TOKEN=$DIGITAL_OCEAN_TOKEN\" >> .env\n
+                echo \"DOCKER_HUB_TOKEN=$DOCKER_HUB_TOKEN\" >> .env\n
                 echo \"REGISTRY_URL=http://service-registry:8000\" >> .env\n
                 
+                # Set Docker Hub credentials\n
+                docker login -u kaw393939 -p $DOCKER_HUB_TOKEN\n
                 # Start the application\n
+                docker compose pull\n
                 docker compose up -d\n",
             "tags": ["mywebclass", "app"]
         }'
