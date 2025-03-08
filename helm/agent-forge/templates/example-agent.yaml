@@ -1,0 +1,92 @@
+{{- if .Values.exampleAgent.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-agent
+  namespace: agent-forge
+  labels:
+    app: example-agent
+    app.kubernetes.io/name: example-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.exampleAgent.replicas }}
+  selector:
+    matchLabels:
+      app: example-agent
+      app.kubernetes.io/name: example-agent
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: example-agent
+        app.kubernetes.io/name: example-agent
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: example-agent
+        image: {{ .Values.exampleAgent.image.repository }}:{{ .Values.exampleAgent.image.tag }}
+        imagePullPolicy: {{ .Values.exampleAgent.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.exampleAgent.service.port }}
+        env:
+        - name: REGISTRY_URL
+          value: "http://service-registry.agent-forge.svc.cluster.local:{{ .Values.registry.service.port }}"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: openai-api-key
+        resources:
+          {{- toYaml .Values.exampleAgent.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-agent
+  namespace: agent-forge
+  labels:
+    app: example-agent
+    app.kubernetes.io/name: example-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app: example-agent
+    app.kubernetes.io/name: example-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+  - port: {{ .Values.exampleAgent.service.port }}
+    targetPort: {{ .Values.exampleAgent.service.port }}
+  type: ClusterIP
+---
+{{- if .Values.exampleAgent.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-agent-ingress
+  namespace: agent-forge
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  labels:
+    app: example-agent
+    app.kubernetes.io/name: example-agent
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  tls:
+  - hosts:
+    - {{ .Values.exampleAgent.ingress.host }}
+    secretName: agent-tls
+  rules:
+  - host: {{ .Values.exampleAgent.ingress.host }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-agent
+            port:
+              number: {{ .Values.exampleAgent.service.port }}
+{{- end -}}
+{{- end -}}

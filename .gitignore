@@ -26,6 +26,17 @@ wheels/
 .installed.cfg
 *.egg
 
+# Python virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+testing-venv/
+.venv/
+.virtualenv/
+virtualenv/
+
 # Docker
 .docker/
 

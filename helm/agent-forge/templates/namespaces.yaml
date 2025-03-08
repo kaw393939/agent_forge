@@ -1,0 +1,2 @@
+# We don't need to create additional namespaces since we're
+# deploying everything to the agent-forge namespace that was already created

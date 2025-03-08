@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # Core infrastructure
+  - cert-manager.yaml
+  - traefik.yaml
+  - linkerd-dashboard.yaml
+  - image-pull-secrets.yaml
+  - secrets.yaml
+  
+  # Application components
+  - registry/service-registry.yaml
+  - agents/example-agent.yaml
+  - tools/example-tool.yaml
+  - frontend/streamlit.yaml
+
+namespace: default

@@ -1,0 +1,1 @@
+{{- /* Skip this template since we've already created the ClusterIssuer manually */ -}}

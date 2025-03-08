@@ -7,7 +7,7 @@ variable "do_token" {
 variable "name_prefix" {
   description = "Prefix to add to resource names"
   type        = string
-  default     = "agent-framework"
+  default     = "agent-forge"
 }
 
 variable "environment" {
@@ -23,31 +23,56 @@ variable "region" {
 }
 
 variable "kubernetes_version" {
-  description = "Kubernetes version for the cluster"
+  description = "Kubernetes version for the DigitalOcean cluster"
   type        = string
-  default     = "1.27.4-do.0" # Choose an available version from DO
+  default     = "1.32.2-do.0"  # Updated to latest supported version
 }
 
-variable "droplet_size" {
-  description = "Size of the droplets for the Kubernetes cluster (smallest options for cost efficiency)"
+variable "node_size" {
+  description = "Size of the Kubernetes worker nodes"
   type        = string
-  default     = "s-1vcpu-2gb" # Smallest recommended size for K8s
+  default     = "s-2vcpu-4gb" # Standard size for Kubernetes workloads
 }
 
 variable "min_nodes" {
-  description = "Minimum number of nodes in the cluster"
+  description = "Minimum number of nodes for the Kubernetes cluster"
   type        = number
-  default     = 1 # Start with single node for dev
+  default     = 1
 }
 
 variable "max_nodes" {
-  description = "Maximum number of nodes in the cluster"
+  description = "Maximum number of nodes for the Kubernetes cluster"
   type        = number
-  default     = 2 # Limit to 2 nodes for cost efficiency
+  default     = 3
+}
+
+variable "ssh_public_key_path" {
+  description = "Path to the public SSH key for DigitalOcean droplet access"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
+}
+
+variable "ssh_private_key_path" {
+  description = "Path to the private SSH key for DigitalOcean droplet access (used in output)"
+  type        = string
+  default     = "~/.ssh/id_rsa"
 }
 
 variable "domain" {
   description = "Domain name for the application (optional)"
   type        = string
+  default     = "mywebclass.org"
+}
+
+variable "docker_hub_username" {
+  description = "Docker Hub username for pulling images"
+  type        = string
+  default     = "kaw393939"
+}
+
+variable "docker_hub_token" {
+  description = "Docker Hub token for authentication"
+  type        = string
+  sensitive   = true
   default     = ""
 }

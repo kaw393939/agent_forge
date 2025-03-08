@@ -1,0 +1,19 @@
+# Default values for agent-forge
+environment: dev
+
+domainName: mywebclass.org
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: mywebclass.org
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: agent-forge-tls
+      hosts:
+        - mywebclass.org

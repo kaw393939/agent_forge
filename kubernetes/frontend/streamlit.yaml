@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit
+  namespace: frontend
+  labels:
+    app: streamlit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: streamlit
+  template:
+    metadata:
+      labels:
+        app: streamlit
+    spec:
+      containers:
+      - name: streamlit
+        image: kaw393939/agent-forge-streamlit:latest
+        ports:
+        - containerPort: 8501
+        env:
+        - name: REGISTRY_URL
+          value: "http://service-registry.registry.svc.cluster.local:8000"
+        - name: DEBUG
+          value: "true"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamlit
+  namespace: frontend
+spec:
+  selector:
+    app: streamlit
+  ports:
+  - port: 8501
+    targetPort: 8501
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: streamlit-ingress
+  namespace: frontend
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - mywebclass.org
+    - www.mywebclass.org
+    secretName: streamlit-tls
+  rules:
+  - host: mywebclass.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: streamlit
+            port:
+              number: 8501
+  - host: www.mywebclass.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: streamlit
+            port:
+              number: 8501

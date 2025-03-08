@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-agent
+  namespace: agents
+  labels:
+    app: example-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-agent
+  template:
+    metadata:
+      labels:
+        app: example-agent
+    spec:
+      containers:
+      - name: example-agent
+        image: kaw393939/agent-forge-example-agent:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REGISTRY_URL
+          value: "http://service-registry.registry.svc.cluster.local:8000"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: openai-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-agent
+  namespace: agents
+spec:
+  selector:
+    app: example-agent
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-agent-ingress
+  namespace: agents
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - agent.mywebclass.org
+    secretName: agent-tls
+  rules:
+  - host: agent.mywebclass.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-agent
+            port:
+              number: 8080

@@ -1,0 +1,100 @@
+{{- if .Values.streamlit.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streamlit-frontend
+  namespace: agent-forge
+  labels:
+    app: streamlit-frontend
+    app.kubernetes.io/name: streamlit-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.streamlit.replicas }}
+  selector:
+    matchLabels:
+      app: streamlit-frontend
+      app.kubernetes.io/name: streamlit-frontend
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: streamlit-frontend
+        app.kubernetes.io/name: streamlit-frontend
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: streamlit-frontend
+        image: {{ .Values.streamlit.image.repository }}:{{ .Values.streamlit.image.tag }}
+        imagePullPolicy: {{ .Values.streamlit.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.streamlit.service.port }}
+        env:
+        - name: REGISTRY_URL
+          value: "http://service-registry.agent-forge.svc.cluster.local:{{ .Values.registry.service.port }}"
+        resources:
+          {{- toYaml .Values.streamlit.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streamlit-frontend
+  namespace: agent-forge
+  labels:
+    app: streamlit-frontend
+    app.kubernetes.io/name: streamlit-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app: streamlit-frontend
+    app.kubernetes.io/name: streamlit-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+  - port: {{ .Values.streamlit.service.port }}
+    targetPort: {{ .Values.streamlit.service.port }}
+  type: ClusterIP
+---
+{{- if .Values.streamlit.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: streamlit-frontend-ingress
+  namespace: agent-forge
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Add special annotation for Streamlit WebSocket support
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/server-snippets: |
+      location / {
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_http_version 1.1;
+      }
+  labels:
+    app: streamlit-frontend
+    app.kubernetes.io/name: streamlit-frontend
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  tls:
+  - hosts:
+    {{- range .Values.streamlit.ingress.hosts }}
+    - {{ . }}
+    {{- end }}
+    secretName: streamlit-tls
+  rules:
+  {{- range .Values.streamlit.ingress.hosts }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: streamlit-frontend
+            port:
+              number: {{ $.Values.streamlit.service.port }}
+  {{- end }}
+{{- end -}}
+{{- end -}}
