@@ -3,6 +3,8 @@
 *.env
 *.pem
 *.key
+secrets.yaml
+**/secrets.yaml
 
 # Python artifacts
 __pycache__/
